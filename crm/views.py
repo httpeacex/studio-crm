@@ -21,17 +21,30 @@ def clients(request):
     query = request.GET.get('q', '').strip()[:200]
     if query:
         queryset = queryset.filter(Q(name__icontains=query) | Q(company__icontains=query) | Q(email__icontains=query))
+    contact = request.GET.get('contact', '')
+    if contact == 'missing':
+        queryset = queryset.filter(email='')
+    else:
+        contact = ''
+    orderings = {'updated': ('-updated_at', '-pk'), 'name': ('name', 'pk'), 'created': ('-created_at', '-pk')}
+    sort = request.GET.get('sort', 'updated')
+    if sort not in orderings:
+        sort = 'updated'
+    queryset = queryset.order_by(*orderings[sort])
     return render(request, 'crm/clients.html', {
         'page': Paginator(queryset, 12).get_page(request.GET.get('page')),
         'query': query, 'archived': archived,
         'active_count': base.filter(archived=False).count(),
         'archive_count': base.filter(archived=True).count(),
+        'missing_count': base.filter(archived=False, email='').count(),
+        'sort': sort, 'contact': contact,
     })
 
 
 @login_required
 def client_detail(request, pk):
-    return render(request, 'crm/detail.html', {'customer': get_object_or_404(visible_clients(request.user), pk=pk)})
+    customer = get_object_or_404(visible_clients(request.user), pk=pk)
+    return render(request, 'crm/detail.html', {'customer': customer, 'archived': customer.archived})
 
 
 @login_required
@@ -45,7 +58,7 @@ def client_form(request, pk=None):
         customer.save()
         messages.success(request, 'Клиент сохранён.')
         return redirect('client-detail', pk=customer.pk)
-    return render(request, 'crm/form.html', {'form': form, 'customer': customer})
+    return render(request, 'crm/form.html', {'form': form, 'customer': customer, 'archived': bool(customer and customer.archived)})
 
 
 @login_required
@@ -56,3 +69,13 @@ def client_archive(request, pk):
     customer.save(update_fields=['archived', 'updated_at'])
     messages.success(request, 'Клиент перенесён в архив.')
     return redirect('clients')
+
+
+@login_required
+@require_POST
+def client_restore(request, pk):
+    customer = get_object_or_404(visible_clients(request.user), pk=pk)
+    customer.archived = False
+    customer.save(update_fields=['archived', 'updated_at'])
+    messages.success(request, 'Клиент возвращён в активные.')
+    return redirect('client-detail', pk=pk)

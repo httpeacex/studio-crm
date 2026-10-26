@@ -2,8 +2,8 @@
 
 ## Scope
 
-One studio, several managers, one shared database. This is a portfolio application
-at the client-management milestone, not a production SaaS or multi-tenant system.
+One studio, several managers, one shared database. The current release covers
+client management with owner-scoped access. Multi-tenant hosting is outside the current scope.
 
 ```mermaid
 flowchart LR
@@ -21,7 +21,7 @@ flowchart LR
 | Action | Manager | Supervisor |
 |---|---|---|
 | List / search / read | Owned clients | All clients |
-| Edit / archive | Owned clients | All clients |
+| Edit / archive / restore | Owned clients | All clients |
 | Create | Owner assigned server-side | Owner assigned server-side |
 
 All object lookups use the same scoped queryset. Foreign object IDs return 404.
@@ -33,7 +33,9 @@ by `is_staff`; more granular groups and assignment permissions are planned.
 Client belongs to a Django user with PROTECT deletion semantics. Archive is a flag,
 preserving notes and ownership. Index `(owner, archived)` serves the main filter.
 All timestamps are stored in UTC. Pagination has deterministic ordering by timestamp
-and primary key. Current SQLite search does not guarantee Unicode case folding.
+and primary key. Sort options use an explicit allowlist. Missing-email filters and
+all summary counts are scoped to the authenticated user's access.
+Current SQLite search does not guarantee Unicode case folding.
 
 ## Tradeoffs
 

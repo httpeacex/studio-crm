@@ -12,4 +12,5 @@ urlpatterns = [
     path('clients/<int:pk>/', views.client_detail, name='client-detail'),
     path('clients/<int:pk>/edit/', views.client_form, name='client-edit'),
     path('clients/<int:pk>/archive/', views.client_archive, name='client-archive'),
+    path('clients/<int:pk>/restore/', views.client_restore, name='client-restore'),
 ]
